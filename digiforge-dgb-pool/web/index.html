@@ -96,7 +96,30 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;word
 <div class="shell">
   <header class="topbar">
     <div class="brand">
-      <img class="logo" src="icon.svg" alt="DigiForge">
+      <svg class="logo" viewBox="0 0 256 256" role="img" aria-label="DigiForge">
+  <defs>
+    <linearGradient id="cyan" x1="52" y1="36" x2="210" y2="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7CF6FF"/>
+      <stop offset=".48" stop-color="#25D9F4"/>
+      <stop offset="1" stop-color="#4A75FF"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="76" y1="154" x2="180" y2="211" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#D7F9FF"/>
+      <stop offset=".45" stop-color="#59DCEB"/>
+      <stop offset="1" stop-color="#3976E7"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" fill="#08101F"/>
+  <path d="M48 39h70c56 0 91 35 91 89s-35 89-91 89H48V39zm39 35v108h29c33 0 53-20 53-54s-20-54-53-54H87z" fill="url(#cyan)"/>
+  <path d="M82 158h87l-11 15h-19v15h21v13H90v-13h22v-15H92z" fill="url(#steel)"/>
+  <g transform="rotate(-37 144 123)">
+    <rect x="139" y="72" width="9" height="92" rx="4.5" fill="#DDFBFF"/>
+    <path d="M116 69h56l8 9h-72z" fill="#60E7F5"/>
+  </g>
+  <circle cx="174" cy="86" r="4" fill="#75F5FF"/>
+  <circle cx="193" cy="99" r="3" fill="#45DFF7"/>
+  <circle cx="184" cy="119" r="2.5" fill="#8CFAFF"/>
+</svg>
       <div><div class="title">DigiForge</div><div class="subtitle">DigiByte SHA256 mining hub · by Mikal</div></div>
     </div>
     <div class="pill"><span id="statusDot" class="dot"></span><span id="statusText" class="status-text">Starting services</span></div>
@@ -148,7 +171,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;word
   </section>
 
   <div class="footer">
-    <span>DigiForge v1.0.3 · by Mikal</span>
+    <span>DigiForge v1.0.4 · by Mikal</span>
     <span>DigiByte Core + Miningcore are upstream open-source dependencies</span>
   </div>
 </div>
