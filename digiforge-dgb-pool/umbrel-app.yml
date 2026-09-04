@@ -2,7 +2,7 @@ manifestVersion: 1
 id: digiforge-dgb-pool
 category: finance
 name: DigiForge
-version: "1.0.2"
+version: "1.0.3"
 tagline: Private DigiByte SHA256 mining on Umbrel
 description: >-
   DigiForge is a self-hosted DigiByte SHA256 mining hub for umbrelOS.
@@ -19,9 +19,7 @@ gallery: []
 path: ""
 defaultPassword: ""
 releaseNotes: >-
-  DigiForge 1.0.2 introduces refreshed DigiForge branding and a new app icon,
-  adds by Mikal attribution, and aligns version reporting across the Umbrel
-  manifest, dashboard, and API. Mining and node functionality remains unchanged
-  from 1.0.1.
+  DigiForge 1.0.3 fixes app and dashboard icon propagation on upgrades.
+  Mining and node functionality remains unchanged from 1.0.2.
 submitter: Mikal
 submission: https://github.com/xlaky1/digiforge-umbrel-app-store
