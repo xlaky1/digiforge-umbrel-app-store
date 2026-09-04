@@ -1,0 +1,46 @@
+{
+  "logging": {
+    "level": "info",
+    "enableConsoleLog": true,
+    "enableConsoleColors": true,
+    "logFile": "",
+    "apiLogFile": "",
+    "logBaseDirectory": "",
+    "perPoolLogFile": false
+  },
+  "banning": {
+    "manager": "Integrated",
+    "banOnJunkReceive": true,
+    "banOnInvalidShares": false
+  },
+  "notifications": {
+    "enabled": false
+  },
+  "persistence": {
+    "postgres": {
+      "host": "postgres",
+      "port": 5432,
+      "user": "miningcore",
+      "password": "__APP_SEED__",
+      "database": "miningcore"
+    }
+  },
+  "paymentProcessing": {
+    "enabled": false,
+    "interval": 600,
+    "shareRecoveryFile": "recovered-shares.txt",
+    "coinbaseString": "DigiForge"
+  },
+  "api": {
+    "enabled": true,
+    "listenAddress": "0.0.0.0",
+    "port": 4000,
+    "metricsIpWhitelist": [],
+    "rateLimiting": {
+      "disabled": true,
+      "rules": [],
+      "ipWhitelist": []
+    }
+  },
+  "pools": []
+}

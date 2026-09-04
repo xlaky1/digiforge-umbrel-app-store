@@ -1,0 +1,97 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: digiforge-dgb-pool_web_1
+      APP_PORT: 8080
+
+  web:
+    image: python:3.12-alpine@sha256:1887c114801a8c82a4ec01daa52cfe7fc3f63573640e2247320289807ac1c3bb
+    restart: on-failure
+    stop_grace_period: 10s
+    environment:
+      APP_SEED: "${APP_SEED}"
+    volumes:
+      - ${APP_DATA_DIR}/web:/app:ro
+      - ${APP_DATA_DIR}/config:/data
+    command: ["python", "/app/server.py"]
+    networks:
+      - default
+      - backend
+
+  digibyted:
+    image: blocknetdx/digibyte:v8.26.2
+    platform: linux/amd64
+    restart: on-failure
+    stop_grace_period: 60s
+    environment:
+      APP_SEED: "${APP_SEED}"
+    volumes:
+      - ${APP_DATA_DIR}/digibyte:/opt/blockchain/data
+    ports:
+      - "12024:12024/tcp"
+    command:
+      - digibyted
+      - -daemon=0
+      - -datadir=/opt/blockchain/data
+      - -printtoconsole=1
+      - -server=1
+      - -listen=1
+      - -port=12024
+      - -algo=sha256d
+      - -prune=10000
+      - -dbcache=1024
+      - -maxconnections=64
+      - -rpcbind=0.0.0.0
+      - -rpcallowip=172.29.36.0/24
+      - -rpcport=14022
+      - -rpcuser=digiforge
+      - -rpcpassword=${APP_SEED}
+    networks:
+      backend:
+        ipv4_address: 172.29.36.10
+
+  postgres:
+    image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    restart: on-failure
+    stop_grace_period: 30s
+    environment:
+      POSTGRES_USER: miningcore
+      POSTGRES_PASSWORD: "${APP_SEED}"
+      POSTGRES_DB: miningcore
+    volumes:
+      - ${APP_DATA_DIR}/postgres/data:/var/lib/postgresql/data
+      - ${APP_DATA_DIR}/postgres/001-createdb.sql:/docker-entrypoint-initdb.d/001-createdb.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U miningcore -d miningcore"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    networks:
+      backend:
+        ipv4_address: 172.29.36.20
+
+  miningcore:
+    image: theretromike/miningcore:umbrel@sha256:c9c6718363a3bead92b64f142014c25eadbf8924fab7ce4466dbb3f7dd951b6c
+    platform: linux/amd64
+    restart: on-failure
+    stop_grace_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ${APP_DATA_DIR}/config:/config
+    ports:
+      - "3256:3256/tcp"
+    command: ["/bin/sh", "/config/miningcore-entrypoint.sh"]
+    networks:
+      backend:
+        ipv4_address: 172.29.36.30
+
+networks:
+  backend:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.36.0/24
