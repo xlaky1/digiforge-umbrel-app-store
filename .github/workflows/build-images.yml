@@ -1,9 +1,6 @@
 name: Build DigiForge Images
 
 on:
-  push:
-    branches:
-      - dev/security-images
   workflow_dispatch:
 
 permissions:
@@ -15,12 +12,28 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           - name: web
             image: digiforge-web
             context: ./digiforge-dgb-pool
             file: ./digiforge-dgb-pool/web/Dockerfile
+
+          - name: digibyte
+            image: digiforge-digibyte
+            context: ./digiforge-dgb-pool
+            file: ./digiforge-dgb-pool/Dockerfile.digibyte
+
+          - name: miningcore
+            image: digiforge-miningcore
+            context: ./digiforge-dgb-pool
+            file: ./digiforge-dgb-pool/config/Dockerfile.miningcore
+
+          - name: postgres
+            image: digiforge-postgres
+            context: ./digiforge-dgb-pool
+            file: ./digiforge-dgb-pool/Dockerfile.postgres
 
     steps:
       - name: Checkout

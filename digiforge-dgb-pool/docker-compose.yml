@@ -7,14 +7,14 @@ services:
       APP_PORT: 8080
 
   init:
-    image: ghcr.io/xlaky1/digiforge-web@sha256:d3160c0df37f81e603a074da5cc1b79b98eb5e9f11cdde919c1c3c88c2541ef2
+    image: ghcr.io/xlaky1/digiforge-web@sha256:6600ce9b60dbfcdaa9a0df0ff96254e91479c8e5acc2f724a13f9f0f29e0cce4
     restart: "no"
     entrypoint: ["python", "/app/init-secrets.py"]
     volumes:
       - ${APP_DATA_DIR}/secrets:/secrets
 
   web:
-    image: ghcr.io/xlaky1/digiforge-web@sha256:d3160c0df37f81e603a074da5cc1b79b98eb5e9f11cdde919c1c3c88c2541ef2
+    image: ghcr.io/xlaky1/digiforge-web@sha256:6600ce9b60dbfcdaa9a0df0ff96254e91479c8e5acc2f724a13f9f0f29e0cce4
     restart: on-failure
     stop_grace_period: 10s
     depends_on:
