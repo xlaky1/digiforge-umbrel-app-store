@@ -1,6 +1,9 @@
 name: Build DigiForge Images
 
 on:
+  push:
+    branches:
+      - dev/security-images
   workflow_dispatch:
 
 permissions:
