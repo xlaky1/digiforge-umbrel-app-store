@@ -2,7 +2,7 @@ manifestVersion: 1
 id: digiforge-dgb-pool
 category: finance
 name: DigiForge
-version: "1.0.4"
+version: "1.0.5"
 tagline: Private DigiByte SHA256 mining on Umbrel
 description: >-
   DigiForge is a self-hosted DigiByte SHA256 mining hub for umbrelOS.
@@ -19,8 +19,10 @@ gallery: []
 path: ""
 defaultPassword: ""
 releaseNotes: >-
-  DigiForge 1.0.4 fixes the dashboard logo on existing installations by
-  embedding the DigiForge artwork directly in the dashboard. Mining and node
-  functionality remains unchanged from 1.0.3.
+  DigiForge 1.0.5 adds native DigiByte dgb1 SegWit pool-address support,
+  moves DigiForge runtime code into versioned container images, replaces the
+  shared APP_SEED runtime credential with independent persistent secrets for
+  DigiByte RPC and PostgreSQL, and pins all DigiForge images by immutable
+  digest. Existing PostgreSQL credentials are migrated automatically.
 submitter: Mikal
 submission: https://github.com/xlaky1/digiforge-umbrel-app-store

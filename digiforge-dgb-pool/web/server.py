@@ -215,7 +215,7 @@ def port_open(host, port):
         return False
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "DigiForge/1.0.4"
+    server_version = "DigiForge/1.0.5"
 
     def send_json(self, payload, status=200):
         raw = json.dumps(payload).encode()
@@ -245,11 +245,11 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/icon.svg":
             return self.send_file("icon.svg", "image/svg+xml")
         if path == "/api/health":
-            return self.send_json({"ok": True, "version": "1.0.4"})
+            return self.send_json({"ok": True, "version": "1.0.5"})
 
         if path == "/api/status":
             result = {
-                "version": "1.0.4",
+                "version": "1.0.5",
                 "configured": bool(current_address()),
                 "address": current_address(),
                 "node": {"online": False},
