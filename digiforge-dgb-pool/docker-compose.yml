@@ -6,33 +6,48 @@ services:
       APP_HOST: digiforge-dgb-pool_web_1
       APP_PORT: 8080
 
+  init:
+    image: digiforge-web:local-test
+    restart: "no"
+    entrypoint: ["python", "/app/init-secrets.py"]
+    volumes:
+      - ${APP_DATA_DIR}/secrets:/secrets
+
   web:
-    image: python:3.12-alpine@sha256:1887c114801a8c82a4ec01daa52cfe7fc3f63573640e2247320289807ac1c3bb
+    image: digiforge-web:local-test
     restart: on-failure
     stop_grace_period: 10s
-    environment:
-      APP_SEED: "${APP_SEED}"
+    depends_on:
+      init:
+        condition: service_completed_successfully
     volumes:
-      - ${APP_DATA_DIR}/web:/app:ro
       - ${APP_DATA_DIR}/config:/data
-    command: ["python", "/app/server.py"]
+      - ${APP_DATA_DIR}/secrets:/secrets:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health', timeout=2).read()"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
     networks:
       - default
       - backend
 
   digibyted:
-    image: blocknetdx/digibyte:v8.26.2
+    image: digiforge-digibyte:local-test
     platform: linux/amd64
     restart: on-failure
     stop_grace_period: 60s
-    environment:
-      APP_SEED: "${APP_SEED}"
+    depends_on:
+      init:
+        condition: service_completed_successfully
     volumes:
       - ${APP_DATA_DIR}/digibyte:/opt/blockchain/data
+      - ${APP_DATA_DIR}/secrets:/secrets:ro
     ports:
       - "12024:12024/tcp"
     command:
-      - digibyted
+      - /usr/bin/digibyted
       - -daemon=0
       - -datadir=/opt/blockchain/data
       - -printtoconsole=1
@@ -46,25 +61,26 @@ services:
       - -rpcbind=0.0.0.0
       - -rpcallowip=172.29.36.0/24
       - -rpcport=14022
-      - -rpcuser=digiforge
-      - -rpcpassword=${APP_SEED}
     networks:
       backend:
         ipv4_address: 172.29.36.10
 
   postgres:
-    image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    image: digiforge-postgres:local-test
     restart: on-failure
     stop_grace_period: 30s
+    depends_on:
+      init:
+        condition: service_completed_successfully
     environment:
       POSTGRES_USER: miningcore
-      POSTGRES_PASSWORD: "${APP_SEED}"
       POSTGRES_DB: miningcore
+      POSTGRES_PASSWORD_FILE: /secrets/postgres-password
     volumes:
       - ${APP_DATA_DIR}/postgres/data:/var/lib/postgresql/data
-      - ${APP_DATA_DIR}/postgres/001-createdb.sql:/docker-entrypoint-initdb.d/001-createdb.sql:ro
+      - ${APP_DATA_DIR}/secrets:/secrets:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U miningcore -d miningcore"]
+      test: ["CMD-SHELL", "PGPASSWORD=\"$$(cat /secrets/postgres-password)\" psql -h 172.29.36.20 -U miningcore -d miningcore -Atqc 'SELECT 1' >/dev/null 2>&1"]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -73,18 +89,19 @@ services:
         ipv4_address: 172.29.36.20
 
   miningcore:
-    image: theretromike/miningcore:umbrel@sha256:c9c6718363a3bead92b64f142014c25eadbf8924fab7ce4466dbb3f7dd951b6c
+    image: digiforge-miningcore:local-test
     platform: linux/amd64
     restart: on-failure
     stop_grace_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
+      web:
+        condition: service_healthy
     volumes:
       - ${APP_DATA_DIR}/config:/config
     ports:
       - "3256:3256/tcp"
-    command: ["/bin/sh", "/config/miningcore-entrypoint.sh"]
     networks:
       backend:
         ipv4_address: 172.29.36.30

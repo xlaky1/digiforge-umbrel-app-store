@@ -21,7 +21,7 @@
       "host": "postgres",
       "port": 5432,
       "user": "miningcore",
-      "password": "__APP_SEED__",
+      "password": "__POSTGRES_PASSWORD__",
       "database": "miningcore"
     }
   },

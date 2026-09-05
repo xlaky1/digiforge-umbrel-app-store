@@ -1,0 +1,7 @@
+FROM theretromike/miningcore:umbrel@sha256:c9c6718363a3bead92b64f142014c25eadbf8924fab7ce4466dbb3f7dd951b6c
+
+COPY config/miningcore-entrypoint.sh /usr/local/bin/digiforge-miningcore-entrypoint
+
+RUN chmod 755 /usr/local/bin/digiforge-miningcore-entrypoint
+
+CMD ["/bin/sh", "/usr/local/bin/digiforge-miningcore-entrypoint"]

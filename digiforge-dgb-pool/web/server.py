@@ -11,10 +11,30 @@ from pathlib import Path
 ROOT = Path("/app")
 DATA = Path("/data")
 CONFIG = DATA / "config.json"
-DEFAULT = DATA / "config.default.json"
+DEFAULT = ROOT / "config.default.json"
 
 RPC_USER = "digiforge"
-RPC_PASSWORD = os.environ.get("APP_SEED", "")
+SECRETS = Path("/secrets")
+RPC_PASSWORD_FILE = Path(os.environ.get(
+    "DIGIBYTE_RPC_PASSWORD_FILE",
+    str(SECRETS / "digibyte-rpc-password")
+))
+POSTGRES_PASSWORD_FILE = Path(os.environ.get(
+    "POSTGRES_PASSWORD_FILE",
+    str(SECRETS / "postgres-password")
+))
+
+def read_secret(path, label):
+    try:
+        value = path.read_text(encoding="utf-8").strip()
+    except OSError as exc:
+        raise RuntimeError(f"{label} secret unavailable: {exc}")
+    if not value:
+        raise RuntimeError(f"{label} secret is empty")
+    return value
+
+RPC_PASSWORD = read_secret(RPC_PASSWORD_FILE, "DigiByte RPC")
+POSTGRES_PASSWORD = read_secret(POSTGRES_PASSWORD_FILE, "PostgreSQL")
 RPC_URL = "http://digibyted:14022/"
 MC_API = "http://miningcore:4000/api"
 POOL_ID = "dgb-sha256"
@@ -23,12 +43,47 @@ def atomic_write(path, text):
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(text, encoding="utf-8")
+    os.chmod(tmp, 0o600)
     os.replace(tmp, path)
 
 def ensure_config():
+    DATA.mkdir(parents=True, exist_ok=True)
+    os.chmod(DATA, 0o700)
+
     if not CONFIG.exists():
-        raw = DEFAULT.read_text(encoding="utf-8").replace("__APP_SEED__", RPC_PASSWORD)
+        raw = DEFAULT.read_text(encoding="utf-8").replace(
+            "__POSTGRES_PASSWORD__",
+            POSTGRES_PASSWORD
+        )
         atomic_write(CONFIG, raw)
+        return
+
+    os.chmod(CONFIG, 0o600)
+
+    cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
+    changed = False
+
+    postgres_cfg = (cfg.get("persistence") or {}).get("postgres")
+    if isinstance(postgres_cfg, dict):
+        if postgres_cfg.get("password") != POSTGRES_PASSWORD:
+            postgres_cfg["password"] = POSTGRES_PASSWORD
+            changed = True
+
+    for pool in cfg.get("pools") or []:
+        if pool.get("id") != POOL_ID:
+            continue
+        for daemon in pool.get("daemons") or []:
+            if daemon.get("password") != RPC_PASSWORD:
+                daemon["password"] = RPC_PASSWORD
+                changed = True
+
+        for key, value in miningcore_address_fields(pool.get("address", "")).items():
+            if pool.get(key) != value:
+                pool[key] = value
+                changed = True
+
+    if changed:
+        atomic_write(CONFIG, json.dumps(cfg, indent=2) + "\n")
 
 def load_config():
     ensure_config()
@@ -43,6 +98,16 @@ def valid_address_syntax(value):
     # authoritative chain validation when the pool starts.
     return bool(re.fullmatch(r"[A-Za-z0-9]{20,100}", value or ""))
 
+def miningcore_address_fields(address):
+    # Miningcore defaults Bitcoin-family SegWit addresses to the Bitcoin
+    # human-readable prefix "bc". DigiByte native SegWit uses "dgb".
+    if str(address).lower().startswith("dgb1"):
+        return {
+            "addressType": "BechSegwit",
+            "bechPrefix": "dgb",
+        }
+    return {}
+
 def write_pool(address):
     cfg = load_config()
     cfg["pools"] = [{
@@ -50,6 +115,7 @@ def write_pool(address):
         "enabled": True,
         "coin": "digibyte-sha256",
         "address": address,
+        **miningcore_address_fields(address),
         "blockRefreshInterval": 500,
         "jobRebroadcastTimeout": 10,
         "clientConnectionTimeout": 600,

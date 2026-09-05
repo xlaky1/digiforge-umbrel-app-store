@@ -1,0 +1,8 @@
+FROM blocknetdx/digibyte@sha256:03d8b8e074e23314e19085ba07783457777553ad7c8df65afb767eca2385d684
+
+COPY digibyte-entrypoint.py /usr/local/bin/digiforge-digibyte-entrypoint.py
+
+RUN chmod 755 /usr/local/bin/digiforge-digibyte-entrypoint.py
+
+ENTRYPOINT ["python3", "/usr/local/bin/digiforge-digibyte-entrypoint.py"]
+CMD ["/usr/bin/digibyted", "-daemon=0"]
