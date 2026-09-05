@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.6
+
+- Added dedicated NerdMiner V2 Stratum port `3257` with fixed difficulty `0.001`, while leaving Bitaxe/ASIC port `3256` unchanged.
+- Added automatic migration so existing DigiForge pool configurations gain the NerdMiner port without replacing the configured reward address.
+- Added worker-level Miningcore statistics so workers such as `BitaxePro`, `nrd1`, and `nrd2` can be displayed individually once they submit accepted shares.
+- Changed the headline pool hashrate to the sum of active worker hashrates while retaining Miningcore's pool estimate separately.
+- Removed the repeated TCP Stratum health probe that generated unnecessary connect/disconnect entries in Miningcore logs.
+- Added an explicit DigiForge icon URL for the Umbrel home-screen app tile.
+
 ## 1.0.5
 
 - Added native DigiByte `dgb1` SegWit reward-address support in Miningcore using `BechSegwit` with the `dgb` Bech32 prefix.

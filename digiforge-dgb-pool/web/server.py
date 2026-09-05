@@ -3,7 +3,6 @@ import base64
 import json
 import os
 import re
-import socket
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -82,6 +81,11 @@ def ensure_config():
                 pool[key] = value
                 changed = True
 
+        ports = pool.setdefault("ports", {})
+        if "3257" not in ports:
+            ports["3257"] = nerdminer_port_config()
+            changed = True
+
     if changed:
         atomic_write(CONFIG, json.dumps(cfg, indent=2) + "\n")
 
@@ -107,6 +111,13 @@ def miningcore_address_fields(address):
             "bechPrefix": "dgb",
         }
     return {}
+
+def nerdminer_port_config():
+    return {
+        "name": "DigiForge NerdMiner",
+        "listenAddress": "0.0.0.0",
+        "difficulty": 0.001,
+    }
 
 def write_pool(address):
     cfg = load_config()
@@ -137,7 +148,8 @@ def write_pool(address):
                     "retargetTime": 90,
                     "variancePercent": 30
                 }
-            }
+            },
+            "3257": nerdminer_port_config()
         },
         "daemons": [{
             "host": "digibyted",
@@ -207,15 +219,34 @@ def miningcore_miners():
             last_error = exc
     raise last_error or RuntimeError("miners endpoint unavailable")
 
-def port_open(host, port):
-    try:
-        with socket.create_connection((host, port), timeout=1.5):
-            return True
-    except OSError:
-        return False
+def miningcore_workers():
+    workers = []
+
+    for miner in miningcore_miners():
+        miner_id = str(miner.get("miner") or "").strip()
+        if not miner_id:
+            continue
+
+        try:
+            detail = get_json(f"{MC_API}/pools/{POOL_ID}/miners/{miner_id}")
+            performance = (detail.get("performance") or {}).get("workers") or {}
+
+            if isinstance(performance, dict):
+                for worker_name, stats in performance.items():
+                    stats = stats or {}
+                    workers.append({
+                        "miner": miner_id,
+                        "worker": worker_name or "default",
+                        "hashrate": stats.get("hashrate", 0),
+                        "sharesPerSecond": stats.get("sharesPerSecond", 0),
+                    })
+        except Exception:
+            continue
+
+    return workers
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "DigiForge/1.0.5"
+    server_version = "DigiForge/1.0.6"
 
     def send_json(self, payload, status=200):
         raw = json.dumps(payload).encode()
@@ -245,15 +276,15 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/icon.svg":
             return self.send_file("icon.svg", "image/svg+xml")
         if path == "/api/health":
-            return self.send_json({"ok": True, "version": "1.0.5"})
+            return self.send_json({"ok": True, "version": "1.0.6"})
 
         if path == "/api/status":
             result = {
-                "version": "1.0.5",
+                "version": "1.0.6",
                 "configured": bool(current_address()),
                 "address": current_address(),
                 "node": {"online": False},
-                "pool": {"online": False, "stratum": port_open("miningcore", 3256)},
+                "pool": {"online": False, "stratum": False},
                 "miners": []
             }
 
@@ -278,18 +309,28 @@ class Handler(BaseHTTPRequestHandler):
                 pool = miningcore_pool()
                 stats = pool.get("poolStats") or {}
                 network = pool.get("networkStats") or {}
+                ports = pool.get("ports") or {}
                 result["pool"].update({
                     "online": bool(pool),
+                    "stratum": bool(pool) and "3256" in ports,
                     "id": pool.get("id"),
                     "connectedMiners": stats.get("connectedMiners", 0),
                     "poolHashrate": stats.get("poolHashrate", 0),
+                    "poolEstimateHashrate": stats.get("poolHashrate", 0),
                     "sharesPerSecond": stats.get("sharesPerSecond", 0),
                     "networkHashrate": network.get("networkHashrate", 0),
                     "networkDifficulty": network.get("networkDifficulty", 0),
                     "blockHeight": network.get("blockHeight", 0)
                 })
                 try:
-                    result["miners"] = miningcore_miners()
+                    workers = miningcore_workers()
+                    result["miners"] = workers
+                    if workers:
+                        result["pool"]["poolHashrate"] = sum(
+                            float(worker.get("hashrate") or 0)
+                            for worker in workers
+                        )
+                        result["pool"]["connectedWorkers"] = len(workers)
                 except Exception:
                     result["miners"] = []
             except Exception as exc:

@@ -142,8 +142,8 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;word
 
   <section class="grid">
     <div class="card"><div class="label">Node</div><div id="nodeValue" class="value">—</div><div id="nodeDetail" class="detail">Checking</div></div>
-    <div class="card"><div class="label">Pool hashrate</div><div id="poolHash" class="value">—</div><div class="detail">DigiForge SHA256</div></div>
-    <div class="card"><div class="label">Miners</div><div id="minerCount" class="value">0</div><div class="detail">Connected workers</div></div>
+    <div class="card"><div class="label">Pool hashrate</div><div id="poolHash" class="value">—</div><div id="poolHashDetail" class="detail">Sum of active workers</div></div>
+    <div class="card"><div class="label">Workers</div><div id="minerCount" class="value">0</div><div class="detail">Active mining workers</div></div>
     <div class="card"><div class="label">Peers</div><div id="peerCount" class="value">0</div><div class="detail">DigiByte connections</div></div>
   </section>
 
@@ -157,21 +157,28 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;word
       </div>
       <div id="message" class="notice"></div>
 
-      <div style="margin-top:18px" class="small">Bitaxe pool URL</div>
+      <div style="margin-top:18px" class="small">Bitaxe / ASIC pool URL</div>
       <div class="codebox"><code id="poolUrl">stratum+tcp://umbrel.local:3256</code><button class="btn secondary" onclick="copyText('poolUrl')">Copy</button></div>
-      <div style="margin-top:12px" class="small">Bitaxe username</div>
-      <div class="codebox"><code id="workerUser">YOUR_DGB_ADDRESS.bitaxe601</code><button class="btn secondary" onclick="copyText('workerUser')">Copy</button></div>
+      <div style="margin-top:12px" class="small">Bitaxe worker</div>
+      <div class="codebox"><code id="workerUser">YOUR_DGB_ADDRESS.BitaxePro</code><button class="btn secondary" onclick="copyText('workerUser')">Copy</button></div>
       <div class="small" style="margin-top:10px">Password: <code>x</code> · VarDiff 256–8192 · target 15 s</div>
+
+      <div style="margin-top:22px" class="small">NerdMiner V2 pool URL</div>
+      <div class="codebox"><code id="nerdPoolUrl">stratum+tcp://umbrel.local:3257</code><button class="btn secondary" onclick="copyText('nerdPoolUrl')">Copy</button></div>
+      <div style="margin-top:12px" class="small">NerdMiner worker examples</div>
+      <div class="codebox"><code id="nerdWorkerUser1">YOUR_DGB_ADDRESS.nrd1</code><button class="btn secondary" onclick="copyText('nerdWorkerUser1')">Copy</button></div>
+      <div class="codebox" style="margin-top:8px"><code id="nerdWorkerUser2">YOUR_DGB_ADDRESS.nrd2</code><button class="btn secondary" onclick="copyText('nerdWorkerUser2')">Copy</button></div>
+      <div class="small" style="margin-top:10px">Password: <code>x</code> · fixed difficulty 0.001</div>
     </div>
 
     <div class="panel">
-      <div class="panel-head"><h2>Connected miners</h2><span class="small">Live</span></div>
-      <div id="miners"><div class="empty">No miners connected yet.</div></div>
+      <div class="panel-head"><h2>Active workers</h2><span class="small">Live</span></div>
+      <div id="miners"><div class="empty">No active workers yet.</div></div>
     </div>
   </section>
 
   <div class="footer">
-    <span>DigiForge v1.0.5 · by Mikal</span>
+    <span>DigiForge v1.0.6 · by Mikal</span>
     <span>DigiByte Core + Miningcore are upstream open-source dependencies</span>
   </div>
 </div>
@@ -192,8 +199,12 @@ function humanHash(n){
 function setDot(id,good){$(id).className="dot"+(good?" good":"")}
 function poolHost(){return location.hostname||"umbrel.local"}
 function updateConnectionText(address){
+  const minerAddress=address||"YOUR_DGB_ADDRESS";
   $("poolUrl").textContent=`stratum+tcp://${poolHost()}:3256`;
-  $("workerUser").textContent=(address||"YOUR_DGB_ADDRESS")+".bitaxe601";
+  $("workerUser").textContent=minerAddress+".BitaxePro";
+  $("nerdPoolUrl").textContent=`stratum+tcp://${poolHost()}:3257`;
+  $("nerdWorkerUser1").textContent=minerAddress+".nrd1";
+  $("nerdWorkerUser2").textContent=minerAddress+".nrd2";
 }
 async function copyText(id){
   try{await navigator.clipboard.writeText($(id).textContent)}catch(e){}
@@ -215,7 +226,10 @@ async function refresh(){
     $("nodeValue").innerHTML=n.online?'<span class="good-text">Online</span>':'<span class="bad-text">Offline</span>';
     $("nodeDetail").textContent=n.online?`${n.blocks||0} blocks · ${humanBytes(n.disk)}`:"Waiting for DigiByte Core";
     $("poolHash").textContent=humanHash(p.poolHashrate);
-    $("minerCount").textContent=p.connectedMiners??(s.miners||[]).length??0;
+    $("poolHashDetail").textContent=p.poolEstimateHashrate
+      ? `Miningcore estimate ${humanHash(p.poolEstimateHashrate)}`
+      : "Sum of active workers";
+    $("minerCount").textContent=p.connectedWorkers??(s.miners||[]).length??0;
     $("peerCount").textContent=n.connections??0;
     $("configured").textContent=s.configured?"Configured":"Needs DGB address";
     $("configured").className="small "+(s.configured?"good-text":"warn-text");
@@ -237,7 +251,7 @@ async function refresh(){
       $("heroText").textContent="Your pool is configured. Let the pruned DigiByte node finish synchronization before connecting the Bitaxe.";
     }else if(p.stratum){
       $("heroTitle").textContent="Ready to mine";
-      $("heroText").textContent="DigiByte is synchronized and Stratum is online. Connect your Bitaxe to the pool URL below.";
+      $("heroText").textContent="DigiByte is synchronized and Stratum is online. Connect Bitaxe/ASIC miners on port 3256 or NerdMiner V2 devices on port 3257.";
     }else{
       $("heroTitle").textContent="Starting mining pool";
       $("heroText").textContent="DigiByte is ready. Miningcore is loading the DigiForge SHA256 configuration.";
@@ -247,8 +261,8 @@ async function refresh(){
     $("miners").innerHTML=miners.length?miners.map((m,i)=>`
       <div class="miner">
         <div><strong>${escapeHtml(minerName(m,i))}</strong><div class="small">${escapeHtml(m.miner||m.address||"SHA256 worker")}</div></div>
-        <div style="text-align:right"><strong>${humanHash(minerHash(m))}</strong><div class="small">hashrate</div></div>
-      </div>`).join(""):'<div class="empty">No miners connected yet.</div>';
+        <div style="text-align:right"><strong>${humanHash(minerHash(m))}</strong><div class="small">${Number(m.sharesPerSecond||0).toFixed(3)} shares/s</div></div>
+      </div>`).join(""):'<div class="empty">No active workers yet.</div>';
   }catch(e){
     setDot("statusDot",false);
     $("statusText").textContent="Dashboard reconnecting";
